@@ -5,16 +5,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
-YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
-
-category_mapping = {
-    "Бизнес": "business",
-    "Саморазвитие": "self_growth",
-    "Любовь к себе": "self_love",
-    "Спорт": "sport"
-}
-
 async def get_iam_token(oauth_token: str) -> str:
     url = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
     data = {
@@ -25,6 +15,16 @@ async def get_iam_token(oauth_token: str) -> str:
         async with session.post(url, json=data) as resp:
             result = await resp.json()
             return result.get("iamToken")
+
+YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
+YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
+
+category_mapping = {
+    "Бизнес": "business",
+    "Саморазвитие": "self_growth",
+    "Любовь к себе": "self_love",
+    "Спорт": "sport"
+}
 
 async def generate_yandex_gpt_quote(category: str) -> str:
     prompts = {
@@ -40,6 +40,7 @@ async def generate_yandex_gpt_quote(category: str) -> str:
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
     try:
+        # ⬇️ Получаем IAM-токен
         iam_token = await get_iam_token(YANDEX_OAUTH_TOKEN)
 
         headers = {
