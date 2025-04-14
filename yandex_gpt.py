@@ -4,8 +4,20 @@ import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
 YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
 YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
+
+# DEBUG: Выводим переменные
+print("🧩 YANDEX_OAUTH_TOKEN:", "OK" if YANDEX_OAUTH_TOKEN else "❌ NOT SET")
+print("📁 YANDEX_FOLDER_ID:", YANDEX_FOLDER_ID or "❌ NOT SET")
+
+category_mapping = {
+    "Бизнес": "business",
+    "Саморазвитие": "self_growth",
+    "Любовь к себе": "self_love",
+    "Спорт": "sport"
+}
 
 async def get_iam_token(oauth_token: str) -> str:
     url = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
@@ -17,13 +29,6 @@ async def get_iam_token(oauth_token: str) -> str:
         async with session.post(url, json=data) as resp:
             result = await resp.json()
             return result.get("iamToken")
-
-category_mapping = {
-    "Бизнес": "business",
-    "Саморазвитие": "self_growth",
-    "Любовь к себе": "self_love",
-    "Спорт": "sport"
-}
 
 async def generate_yandex_gpt_quote(category: str) -> str:
     prompts = {
@@ -41,13 +46,16 @@ async def generate_yandex_gpt_quote(category: str) -> str:
     try:
         iam_token = await get_iam_token(YANDEX_OAUTH_TOKEN)
 
+        model_uri = f"gpt://{YANDEX_FOLDER_ID}/yandexgpt/latest"
+        print("📤 modelUri:", model_uri)
+
         headers = {
             "Authorization": f"Bearer {iam_token}",
             "Content-Type": "application/json"
         }
 
         data = {
-            "modelUri": f"gpt://{YANDEX_FOLDER_ID}/yandexgpt/latest",
+            "modelUri": model_uri,
             "completionOptions": {
                 "stream": False,
                 "temperature": 0.8,
@@ -60,12 +68,9 @@ async def generate_yandex_gpt_quote(category: str) -> str:
         }
 
         async with aiohttp.ClientSession() as session:
-            print("📤 Данные запроса:", data)
             async with session.post(url, headers=headers, json=data) as resp:
                 response = await resp.json()
-                print("📥 Ответ от Yandex:", response)
-                logging.info("Yandex GPT response:")
-                logging.info(response)
+                print("📥 Yandex GPT response:", response)
 
                 if "result" in response:
                     return response["result"]["alternatives"][0]["message"]["text"]
@@ -73,7 +78,7 @@ async def generate_yandex_gpt_quote(category: str) -> str:
                     error_message = response["error"].get("message", "Неизвестная ошибка")
                     error_code = response["error"].get("code", "unknown_code")
                     logging.error(f"Yandex GPT API Error: {error_code} — {error_message}")
-                    return f"⚠️ Ошибка от Yandex GPT: {error_message}"
+                    return f"⚠️ Ошибка от Yandex GPT: {error_message}\n📤 modelUri: {model_uri}"
                 else:
                     logging.error("Непредвиденный ответ от Yandex GPT")
                     return "⚠️ Не удалось обработать ответ от Yandex GPT."
