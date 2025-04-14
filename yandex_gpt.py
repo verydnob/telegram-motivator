@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
+YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
+
 async def get_iam_token(oauth_token: str) -> str:
     url = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
     data = {
@@ -15,9 +18,6 @@ async def get_iam_token(oauth_token: str) -> str:
         async with session.post(url, json=data) as resp:
             result = await resp.json()
             return result.get("iamToken")
-
-YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
-YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
 
 category_mapping = {
     "Бизнес": "business",
